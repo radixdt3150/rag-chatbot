@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { AskRequestDto } from './dto/ask-request.dto';
-import { AskResponseDto } from './dto/ask-response.dto';
+import { Injectable } from "@nestjs/common";
+import { AskRequestDto } from "./dto/ask-request.dto";
+import { AskResponseDto } from "./dto/ask-response.dto";
 
 @Injectable()
 export class AskService {
