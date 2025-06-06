@@ -40,18 +40,18 @@ def chat():
     # result = generator(prompt, max_new_tokens=512, do_sample=True, temperature=0.7)
     # output = result[0]["generated_text"]
 
-    messages = [
-    [
-        {
-            "role": "system",
-            "content": [{"type": "text", "text": "You are a helpful assistant."},]
-        },
-        {
-            "role": "user",
-            "content": [{"type": "text", "text": "Write a 1000 word essay on hugging face the company"},]
-        },
-    ],
-    ]
+    # messages = [
+    # [
+    #     {
+    #         "role": "system",
+    #         "content": [{"type": "text", "text": "You are a helpful assistant."},]
+    #     },
+    #     {
+    #         "role": "user",
+    #         "content": [{"type": "text", "text": "Write a 1000 word essay on hugging face the company"},]
+    #     },
+    # ],
+    # ]
     answer = pipe(prompt, max_new_tokens=500)
 
     return jsonify({"answer": answer})
