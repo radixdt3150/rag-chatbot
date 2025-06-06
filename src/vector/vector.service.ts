@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from "@nestjs/common";
 import { QdrantClient } from "@qdrant/js-client-rest";
 import OpenAI from "openai";
-import { loadPdfText } from "./utils/loader";
+import { loadDocumentText } from "./utils/loader";
 import { splitText } from "./utils/text-split";
 import { v4 as uuidv4 } from "uuid";
 
@@ -15,16 +15,15 @@ export class VectorService implements OnModuleInit {
     private readonly openaiClient = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
     });
-    private readonly flaskApiUrl = "http://localhost:5005/embed";
 
     // This method will be automatically called when the module is initialized
     async onModuleInit() {
         await this.createCollection();
     }
 
-    async indexPdf(buffer: Buffer) {
+    async indexDocument(buffer: Buffer) {
         try {
-            const text = await loadPdfText(buffer);
+            const text = await loadDocumentText(buffer);
             const chunks = splitText(text);
 
             const vectors = await Promise.all(
@@ -58,8 +57,8 @@ export class VectorService implements OnModuleInit {
         //     input: text,
         // });
         // return res.data[0].embedding;
-
-        const response = await axios.post(this.flaskApiUrl, { text });
+        const EMBED_URL = "http://localhost:5005/embed";
+        const response = await axios.post(EMBED_URL, { text });
         return response.data.embedding;
     }
 
@@ -99,12 +98,8 @@ export class VectorService implements OnModuleInit {
         Answer:
         `;
 
-        const completion = await this.openaiClient.chat.completions.create({
-            model: "gpt-4",
-            messages: [{ role: "user", content: prompt }],
-        });
-
-        return completion.choices[0].message.content;
+        const answer = await this.promptLLM(prompt);
+        return answer;
     }
 
     private async createCollection() {
@@ -127,7 +122,7 @@ export class VectorService implements OnModuleInit {
                         // Vectors schema
                         vectors: {
                             size: 384, // Vector size for your embeddings (ensure this matches your model's embedding size)
-                            distance: "Cosine", // Distance metric: "Cosine" or "Euclidean"
+                            distance: "Cosine",
                         },
                     }
                 );
@@ -140,5 +135,42 @@ export class VectorService implements OnModuleInit {
         } catch (error) {
             console.error("Error creating collection:", error);
         }
+    }
+
+    async promptLLM(prompt: string) {
+        // const URL =
+        //     "https://router.huggingface.co/hf-inference/models/Qwen/Qwen3-235B-A22B/v1/chat/completions";
+        const payload = [
+            [
+                {
+                    role: "system",
+                    content: [
+                        {
+                            type: "text",
+                            text: "You are a helpful assistant.",
+                        },
+                    ],
+                },
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: prompt,
+                        },
+                    ],
+                },
+            ],
+        ];
+        // const headers = {
+        //     Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+        // };
+
+        const URL = "http://localhost:5005/chat";
+        const response = await axios.post(URL, { prompt: payload });
+        const normalized =
+            response.data?.answer?.[0]?.[0]?.generated_text?.[2].content;
+
+        return normalized;
     }
 }
